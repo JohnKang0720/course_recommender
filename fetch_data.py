@@ -2,8 +2,6 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import requests
 
-#PLAN: Course recommendation based on your profile
-
 URL = 'https://vancouver.calendar.ubc.ca/course-descriptions/institution/120'
 
 HEADERS = {
