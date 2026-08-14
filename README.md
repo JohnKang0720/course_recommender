@@ -1,76 +1,55 @@
-# 🎓 UBC Clustering-Based Course Recommendation System
+# 🎓 UBC Course Search
 
-This project implements a **course recommendation system using unsupervised learning**.  
-Instead of predicting explicit ratings, the system **groups similar courses and/or users using clustering algorithms** and generates recommendations based on cluster membership.
+Semantic search over the UBC Science catalog (~1,200 courses). Type what you want to learn in
+plain English and it finds courses by **meaning, not keywords** — and the whole search runs
+**in your browser**.
 
-The full analysis and implementation are provided in the Jupyter Notebook:
-`recommendation.ipynb`.
-
----
-
-## 📌 Project Overview
-
-Traditional recommender systems often rely on collaborative filtering or matrix factorization.  
-In this project, we explore an alternative approach using **clustering techniques** to discover structure in course data and recommend courses within similar groups.
-
-The project compares three clustering methods:
-
-- **K-Means Clustering**
-- **Agglomerative Hierarchical Clustering**
-- **Spectral Clustering**
+**▶ [Live demo](https://johnkang0720.github.io/course_recommender/)** — search, "more like this," and an interactive topic map where your results light up.
 
 ---
 
-## 🧠 Recommendation Strategy
+## How it works
 
-The recommendation pipeline follows these steps:
+Every course description is turned into a vector with a sentence-transformer (MiniLM), so
+similar courses land near each other in a 384-dimensional space. Searching is then just
+geometry:
 
-1. **Feature Extraction**
-   - Course features are transformed into numerical representations suitable for clustering.
-   - Features may include course ratings, enrollment patterns, or topic-related attributes.
+1. **Scrape** the catalog (I expanded my original UBC scraper to every subject).
+2. **Embed** each course once, offline → one vector per course.
+3. At query time, embed *your* text with the **same** model — running in the browser via
+   Transformers.js — and return the nearest course vectors by cosine similarity.
 
-2. **Clustering**
-   - Courses are grouped into clusters based on similarity.
-   - Each clustering algorithm assigns courses to distinct groups.
+It's a **bi-encoder**: one shared text encoder embeds both the query and the courses, because
+both sides are just text. No ratings, no behavior data — pure content-based retrieval.
 
-3. **Recommendation**
-   - Given a course or user preference, recommendations are generated from the **same cluster**.
-   - Courses within the same cluster are assumed to be similar in content or appeal.
+## Search vs. clustering
 
----
+The original project clustered courses. I kept clustering as a baseline and compared three
+methods — but on text embeddings they all score a low silhouette (<0.1): the catalog is one
+connected mass of related topics, not tidy islands. That's exactly *why nearest-neighbor
+search beats hard clustering here.* K-Means still earns its keep coloring the topic map.
 
-## 🔍 Clustering Algorithms Used
+![Topic map](figures/topic_map.png)
 
-### 1️⃣ K-Means Clustering
-- Partitions courses into `k` clusters
-- Optimizes intra-cluster similarity
-- Efficient and scalable for larger datasets
+![Clustering comparison](figures/clustering.png)
 
-### 2️⃣ Agglomerative Hierarchical Clustering
-- Builds clusters bottom-up by merging similar courses
-- Does not require pre-selecting the number of clusters
-- Provides interpretability via dendrogram structure
+## Run it
 
-### 3️⃣ Spectral Clustering
-- Uses graph-based similarity representation
-- Captures complex, non-linear relationships
-- Effective when cluster boundaries are not spherical
-
----
-
-## 📂 Repository Structure
-```
-course_recommender/
-│
-├── recommendation.ipynb # Clustering-based recommendation system
-└── README.md # Project documentation
+```bash
+pip install -r requirements.txt
+python scripts/build.py    # scrape → embed → cluster → figures → export the demo
+pytest -q
 ```
 
-## ⚙️ Technologies Used
+`build.py` caches the scrape and embeddings, so re-runs are instant.
 
-- **Python**
-- **Jupyter Notebook**
-- **Pandas**
-- **NumPy**
-- **Scikit-learn**
-- **Matplotlib / Seaborn**
+## Layout
+
+```
+coursesearch/
+  scrape.py   # scrape the UBC catalog
+  embed.py    # MiniLM embeddings, cosine search, clustering + silhouette
+  viz.py      # UMAP topic map + clustering comparison
+scripts/      # build.py (scrape → embed → export)
+docs/         # the in-browser search demo · tests/
+```

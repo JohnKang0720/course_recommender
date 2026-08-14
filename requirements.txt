@@ -1,0 +1,8 @@
+sentence-transformers>=2.2
+scikit-learn>=1.4
+umap-learn>=0.5
+numpy>=1.26
+pandas>=2.0
+beautifulsoup4>=4.12
+requests>=2.31
+matplotlib>=3.8
